@@ -40,8 +40,9 @@
   .brand .mark{font-family:'Space Grotesk',sans-serif; font-weight:700;
     font-size:21px; letter-spacing:-.02em; line-height:1.05;}
   .brand .mark span{color:var(--accent);}
-  .brand .sub{font-size:12px; color:var(--muted); letter-spacing:.01em;}
-  .search{flex:1; min-width:220px; position:relative;}
+  .brand .sub{font-size:12px; color:var(--muted); letter-spacing:.01em;
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .search{flex:1; min-width:200px; position:relative;}
   .search input{
     width:100%; border:1px solid var(--line); background:var(--card);
     border-radius:12px; padding:11px 14px 11px 40px; font-size:14px; color:var(--ink);
@@ -49,6 +50,16 @@
   }
   .search input:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
   .search svg{position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted);}
+  .edit-toggle{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
+    background:var(--card);color:var(--muted);font-weight:600;font-size:13.5px;font-family:inherit;
+    padding:10px 14px;border-radius:12px;cursor:pointer;transition:all .14s;white-space:nowrap;}
+  .edit-toggle:hover{border-color:#D5DAE2;color:var(--ink);}
+  .edit-toggle.on{background:var(--live-bg);border-color:#B7E4C7;color:var(--live);}
+  .sync{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+    background:var(--line-soft);color:var(--muted);white-space:nowrap;}
+  .sync.ok{background:var(--live-bg);color:var(--live);}
+  .sync.err{background:#FEF3F2;color:#D92D20;}
+  .sync.demo{background:#FFF6E5;color:#8a6100;}
   .btn-add{
     display:inline-flex; align-items:center; gap:7px; border:none; cursor:pointer;
     background:var(--ink); color:#fff; font-weight:600; font-size:14px;
@@ -148,21 +159,10 @@
     transition:background .14s,color .14s;}
   .icon-btn:hover{background:var(--line-soft);color:var(--ink);}
   .icon-btn svg{width:16px;height:16px;}
-  .sample-tag{position:absolute;bottom:10px;left:10px;z-index:2;font-size:10.5px;font-weight:700;
-    background:rgba(20,22,27,.72);color:#fff;padding:3px 8px;border-radius:6px;letter-spacing:.03em;}
 
   /* Empty */
   .empty{grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--muted);}
   .empty .big{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:6px;}
-
-  /* Save bar */
-  .savebar{position:fixed; right:22px; bottom:22px; z-index:50; display:flex; gap:10px;}
-  .save-btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;
-    background:var(--accent);color:#fff;font-weight:700;font-size:14px;font-family:inherit;
-    padding:13px 20px;border-radius:14px;box-shadow:0 8px 26px rgba(47,111,237,.36);
-    transition:transform .12s,filter .14s;}
-  .save-btn:hover{transform:translateY(-2px);filter:brightness(1.03);}
-  .save-btn svg{width:17px;height:17px;}
 
   /* Modal */
   .overlay{position:fixed;inset:0;background:rgba(16,20,28,.44);z-index:60;
@@ -182,7 +182,7 @@
   .field{display:flex;flex-direction:column;gap:6px;}
   .field label{font-size:12.5px;font-weight:700;color:var(--ink);letter-spacing:.01em;}
   .field .hint{font-size:11.5px;color:var(--muted);font-weight:500;}
-  .field input[type=text],.field input[type=date],.field textarea,.field select{
+  .field input[type=text],.field input[type=date],.field input[type=password],.field textarea,.field select{
     border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;
     font-family:inherit;color:var(--ink);outline:none;background:#fff;transition:border-color .14s,box-shadow .14s;}
   .field input:focus,.field textarea:focus,.field select:focus{
@@ -243,6 +243,14 @@
     z-index:80;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 10px 30px rgba(0,0,0,.25);}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+  /* View/Edit gating: 편집 모드일 때만 편집 UI 노출 */
+  .btn-add{display:none;}
+  body.is-editor .btn-add{display:inline-flex;}
+  .chip-manage{display:none;}
+  body.is-editor .chip-manage{display:inline-flex;}
+  .row-actions{display:none !important;}
+  body.is-editor .row-actions{display:flex !important;}
+
   @media (max-width:640px){
     .head-in{gap:12px;}
     .brand .mark{font-size:19px;}
@@ -250,7 +258,6 @@
     .btn-add{padding:11px 12px;}
     .live-toggle{margin-left:0;}
     .grid{grid-template-columns:1fr;}
-    .savebar{right:14px;bottom:14px;}
     .two{grid-template-columns:1fr;}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
@@ -261,12 +268,13 @@
   <div class="head-in">
     <div class="brand">
       <div class="mark">광고 <span>미리보기</span></div>
-      <div class="sub">인터넷끝판왕 · 영업팀 상담 참고용</div>
+      <div class="sub">인터넷끝판왕 · 영업팀 상담 참고용 <span class="sync" id="syncBadge"></span></div>
     </div>
     <div class="search">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="q" type="text" placeholder="채널명, 경로, 혜택, 대표번호로 검색…" autocomplete="off">
     </div>
+    <button class="edit-toggle" id="editBtn" onclick="onEditBtn()">🔓 편집</button>
     <button class="btn-add" onclick="openForm()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       <span>광고 추가</span>
@@ -277,13 +285,6 @@
 <div class="wrap">
   <div class="filters" id="filters"></div>
   <div class="grid" id="grid"></div>
-</div>
-
-<div class="savebar">
-  <button class="save-btn" onclick="saveAll()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
-    전체 저장
-  </button>
 </div>
 
 <!-- Ad Modal -->
@@ -398,6 +399,30 @@
   </div>
 </div>
 
+<!-- Password Modal -->
+<div class="overlay" id="pwOverlay">
+  <div class="modal narrow">
+    <div class="modal-head">
+      <h2>편집 잠금 해제</h2>
+      <button class="icon-btn x" onclick="closePw()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>편집 비밀번호</label>
+        <input type="password" id="pwInput" placeholder="팀 공용 비밀번호" autocomplete="current-password">
+        <div class="hint">비밀번호를 넣으면 이 브라우저에서 광고를 추가·수정할 수 있어. 그냥 볼 사람은 입력 안 해도 돼.</div>
+      </div>
+      <div id="pwErr" style="display:none;color:#D92D20;font-size:12.5px;font-weight:600;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closePw()">취소</button>
+      <button class="btn-save" onclick="submitPw()">확인</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -410,10 +435,10 @@ var DEFAULT_CHANNELS = [
 ];
 var SWATCH_COLORS = ['#FF3B30','#E1306C','#0064FF','#12A150','#F79009','#7A5AF8','#06AED4','#EC4A0A','#D444F1','#F63D68','#0BA5EC','#475467'];
 
-var DB = { channels: [], ads: [] };
+var DB = { channels: DEFAULT_CHANNELS.map(function(c){return Object.assign({},c);}), ads: [] };
 function chMeta(k){ return DB.channels.find(function(c){return c.key===k;}) || {key:k,name:k,color:'#5B6472'}; }
 
-/* Sample seed */
+/* 데모 시드(파이어베이스 연결 전에만 사용) */
 var SAMPLE = [
   {id:'s1', channel:'youtube', title:'유튜브-PPL', src:'자취남 채널', phone:'1600-1234', yt:'https://youtu.be/dQw4w9WgXcQ',
    img:'', benefit:'현금 최대 30만원\n+ 상품권 3만원 + 공유기 무료', start:'2026-06-01', end:'', status:'live',
@@ -434,6 +459,7 @@ var formCh = 'youtube';
 var formStatus = 'live';
 var formImg = '';
 var newChColor = SWATCH_COLORS[3];
+var isEditor = false;
 
 /* ---------- YouTube helpers ---------- */
 function ytId(url){
@@ -454,6 +480,26 @@ function periodStr(start,end,status){
   if(!s) return e;
   if(!e) return s+' ~';
   return s+' ~ '+e;
+}
+
+/* ---------- Image compress (Firestore 용량 절약) ---------- */
+function fileToImg(file, cb){
+  var r=new FileReader();
+  r.onload=function(){
+    var img=new Image();
+    img.onload=function(){
+      try{
+        var max=1280, w=img.width, h=img.height;
+        if(w>max||h>max){ var s=max/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+        var c=document.createElement('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        cb(c.toDataURL('image/jpeg',0.72));
+      }catch(e){ cb(r.result); }
+    };
+    img.onerror=function(){ cb(r.result); };
+    img.src=r.result;
+  };
+  r.readAsDataURL(file);
 }
 
 /* ---------- Render filters ---------- */
@@ -498,7 +544,7 @@ function render(){
   if(!list.length){
     grid.innerHTML = '<div class="empty"><div class="big">'+
       (DB.ads.length? '조건에 맞는 광고가 없어' : '아직 등록된 광고가 없어')+'</div>'+
-      (DB.ads.length? '검색어나 필터를 바꿔봐.' : '오른쪽 위 <b>광고 추가</b>로 첫 광고를 등록해줘.')+'</div>';
+      (DB.ads.length? '검색어나 필터를 바꿔봐.' : '편집을 켜고 <b>광고 추가</b>로 첫 광고를 등록해줘.')+'</div>';
     return;
   }
   grid.innerHTML = list.map(cardHtml).join('');
@@ -528,12 +574,11 @@ function cardHtml(a){
   var phone = a.phone ? '<a class="phoneline" href="tel:'+esc(a.phone.replace(/[^0-9+]/g,''))+'">'+
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L7.9 9.8a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg>'+
     esc(a.phone)+'</a>' : '';
-  var sample = a.sample ? '<div class="sample-tag">예시 · 삭제해도 됨</div>' : '';
   var per = a.period || periodStr(a.start, a.end, a.status);
   return '<div class="card">'+
     '<div class="preview">'+
       '<div class="badges"><span class="ch-badge" style="background:'+ch.color+'">'+esc(ch.name)+'</span></div>'+
-      statusHtml + sample + preview +
+      statusHtml + preview +
     '</div>'+
     '<div class="body">'+
       '<div class="src">'+esc(a.src||ch.name)+'</div>'+
@@ -584,9 +629,7 @@ document.getElementById('stSeg').addEventListener('click', function(e){
 });
 document.getElementById('f_img').addEventListener('change', function(e){
   var file=e.target.files[0]; if(!file) return;
-  var r=new FileReader();
-  r.onload=function(){ formImg=r.result; showImgPreview(); };
-  r.readAsDataURL(file);
+  fileToImg(file, function(data){ formImg=data; showImgPreview(); });
 });
 function showImgPreview(){
   var d=document.getElementById('imgdrop');
@@ -599,11 +642,11 @@ function showImgPreview(){
 }
 function reBindImg(e){
   var file=e.target.files[0]; if(!file) return;
-  var r=new FileReader(); r.onload=function(){ formImg=r.result; showImgPreview(); };
-  r.readAsDataURL(file);
+  fileToImg(file, function(data){ formImg=data; showImgPreview(); });
 }
 
 function openForm(id){
+  if(!isEditor){ toast('편집하려면 먼저 잠금을 해제해줘'); openPw(); return; }
   editingId = id || null;
   var a = id ? DB.ads.find(function(x){return x.id===id;}) : null;
   document.getElementById('modalTitle').textContent = a ? '광고 수정' : '광고 추가';
@@ -652,19 +695,25 @@ function saveAd(){
     memo: document.getElementById('f_memo').value.trim()
   };
   if(!obj.title && !obj.benefit){ toast('인입경로나 혜택 중 하나는 적어줘'); return; }
-  if(editingId){
-    var i = DB.ads.findIndex(function(x){return x.id===editingId;});
-    if(i>=0) DB.ads[i]=obj;
+  if(window.__cloud){
+    window.__save(obj).then(function(){ closeForm(); toast('저장됨 · 모두에게 실시간 반영'); })
+      .catch(function(e){ toast('저장 실패: '+(e.code||e.message||'')); });
   } else {
-    DB.ads.unshift(obj);
+    if(editingId){ var i=DB.ads.findIndex(function(x){return x.id===editingId;}); if(i>=0) DB.ads[i]=obj; }
+    else { DB.ads.unshift(obj); }
+    closeForm(); render(); toast('데모 모드 · 실제 저장은 연결 후');
   }
-  closeForm(); render(); toast('저장했어 · 파일에 반영하려면 [전체 저장]');
 }
 function delAd(){
   if(!editingId) return;
   if(!confirm('이 광고를 삭제할까?')) return;
-  DB.ads = DB.ads.filter(function(x){return x.id!==editingId;});
-  closeForm(); render();
+  if(window.__cloud){
+    window.__del(editingId).then(function(){ closeForm(); toast('삭제됨'); })
+      .catch(function(e){ toast('삭제 실패: '+(e.code||'')); });
+  } else {
+    DB.ads = DB.ads.filter(function(x){return x.id!==editingId;});
+    closeForm(); render();
+  }
 }
 
 /* ---------- Channel manager ---------- */
@@ -685,7 +734,6 @@ function renderChannelList(){
           : '<button class="del" title="삭제" onclick="delChannel(\''+ch.key+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>');
     return '<div class="ch-row"><span class="cdot" style="background:'+ch.color+'"></span>'+
       '<span class="nm">'+esc(ch.name)+'</span>'+
-      (ch.fixed? '' : (used>0? '' : '<span class="usecnt" style="margin-left:auto"></span>'))+
       '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px">'+right+'</span></div>';
   }).join('');
 }
@@ -702,41 +750,60 @@ function addChannel(){
   var name = document.getElementById('newChName').value.trim();
   if(!name){ toast('채널 이름을 입력해줘'); return; }
   if(DB.channels.some(function(c){return c.name===name;})){ toast('이미 있는 채널이야'); return; }
-  DB.channels.push({key:slug(name), name:name, color:newChColor, fixed:false});
-  document.getElementById('newChName').value='';
-  renderChannelList(); renderFilters(); toast('채널 추가됨 · [전체 저장] 잊지마');
+  var newCh = {key:slug(name), name:name, color:newChColor, fixed:false};
+  var arr = DB.channels.concat([newCh]);
+  if(window.__cloud){
+    window.__saveChannels(arr).then(function(){ document.getElementById('newChName').value=''; toast('채널 추가됨'); })
+      .catch(function(e){ toast('실패: '+(e.code||'')); });
+  } else {
+    DB.channels = arr; document.getElementById('newChName').value='';
+    renderChannelList(); renderFilters(); toast('데모 · 연결 후 저장');
+  }
 }
 function delChannel(key){
   var ch = chMeta(key);
   if(ch.fixed) return;
   if(!confirm('"'+ch.name+'" 채널을 삭제할까?')) return;
-  DB.channels = DB.channels.filter(function(c){return c.key!==key;});
+  var arr = DB.channels.filter(function(c){return c.key!==key;});
   if(activeCh===key) activeCh='all';
-  renderChannelList(); render(); toast('채널 삭제됨');
+  if(window.__cloud){
+    window.__saveChannels(arr).then(function(){ toast('채널 삭제됨'); })
+      .catch(function(e){ toast('실패: '+(e.code||'')); });
+  } else {
+    DB.channels = arr; renderChannelList(); render(); toast('채널 삭제됨');
+  }
 }
 
-/* ---------- Save to file ---------- */
-function currentHTML(){
-  var clone = document.documentElement.cloneNode(true);
-  clone.querySelectorAll('#saved-db').forEach(function(n){n.remove();});
-  var g = clone.querySelector('#grid'); if(g) g.innerHTML='';
-  clone.querySelectorAll('.overlay').forEach(function(o){o.classList.remove('open');});
-  var json = JSON.stringify(DB).replace(/<\/script>/gi,'<\\/script>');
-  var s = document.createElement('script');
-  s.id='saved-db'; s.type='application/json'; s.textContent=json;
-  clone.querySelector('body').appendChild(s);
-  return '<!DOCTYPE html>\n'+clone.outerHTML;
+/* ---------- Edit lock (공용 비밀번호) ---------- */
+function applyEditMode(){
+  document.body.classList.toggle('is-editor', !!isEditor);
+  var b=document.getElementById('editBtn');
+  if(isEditor){ b.textContent='✏️ 편집 중 · 종료'; b.classList.add('on'); }
+  else { b.textContent='🔓 편집'; b.classList.remove('on'); }
 }
-function saveAll(){
-  try{
-    var blob = new Blob([currentHTML()], {type:'text/html'});
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'index.html';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function(){URL.revokeObjectURL(a.href);}, 1500);
-    toast('저장 완료 · 받은 파일로 덮어쓰면 데이터가 유지돼');
-  }catch(e){ toast('저장 실패: '+e.message); }
+function onEditBtn(){
+  if(isEditor){
+    if(window.__cloud && window.__logout){ window.__logout(); }
+    else { isEditor=false; applyEditMode(); }
+  } else {
+    if(window.__cloud){ openPw(); }
+    else { isEditor=true; applyEditMode(); toast('데모 편집 모드'); }
+  }
+}
+function openPw(){
+  document.getElementById('pwErr').style.display='none';
+  document.getElementById('pwInput').value='';
+  document.getElementById('pwOverlay').classList.add('open');
+  setTimeout(function(){ document.getElementById('pwInput').focus(); }, 50);
+}
+function closePw(){ document.getElementById('pwOverlay').classList.remove('open'); }
+function submitPw(){
+  var pw=document.getElementById('pwInput').value;
+  if(!pw) return;
+  var err=document.getElementById('pwErr'); err.style.display='none';
+  if(!window.__login){ err.textContent='아직 클라우드 연결 전이야.'; err.style.display='block'; return; }
+  window.__login(pw).then(function(){ closePw(); /* isEditor는 로그인 상태변화로 자동 반영 */ })
+    .catch(function(e){ err.textContent='비밀번호가 맞지 않아. 다시 확인해줘.'; err.style.display='block'; });
 }
 
 /* ---------- Toast ---------- */
@@ -746,25 +813,114 @@ function toast(msg){
   clearTimeout(toastTimer); toastTimer=setTimeout(function(){t.classList.remove('show');},2600);
 }
 
+/* ---------- Bridge (module → app) ---------- */
+window.__setAds = function(ads){ DB.ads = ads||[]; render(); };
+window.__setChannels = function(chArr){
+  if(!chArr || !chArr.length){
+    DB.channels = DEFAULT_CHANNELS.map(function(c){return Object.assign({},c);});
+  } else {
+    var arr = chArr.map(function(c){return Object.assign({},c);});
+    DEFAULT_CHANNELS.forEach(function(d){
+      if(!arr.some(function(c){return c.key===d.key;})) arr.unshift(Object.assign({},d));
+    });
+    arr.forEach(function(c){ if(DEFAULT_CHANNELS.some(function(d){return d.key===c.key;})) c.fixed=true; });
+    DB.channels = arr;
+  }
+  render();
+  if(document.getElementById('chOverlay').classList.contains('open')) renderChannelList();
+};
+window.__setEditor = function(v){ isEditor=!!v; applyEditMode(); };
+window.__setSync = function(state){
+  var el=document.getElementById('syncBadge'); if(!el) return;
+  if(state==='connected'){ el.textContent='☁ 실시간 공유'; el.className='sync ok'; }
+  else if(state==='error'){ el.textContent='⚠ 연결 오류'; el.className='sync err'; }
+  else if(state==='demo'){ el.textContent='연결 전 · 데모(저장 안 됨)'; el.className='sync demo'; }
+  else { el.textContent=''; el.className='sync'; }
+};
+window.__demoSeed = function(){
+  DB.channels = DEFAULT_CHANNELS.map(function(c){return Object.assign({},c);});
+  DB.ads = SAMPLE.slice();
+  render();
+};
+
 /* ---------- Boot ---------- */
 document.getElementById('q').addEventListener('input', render);
 document.getElementById('overlay').addEventListener('click', function(e){ if(e.target===this) closeForm(); });
 document.getElementById('chOverlay').addEventListener('click', function(e){ if(e.target===this) closeChannels(); });
+document.getElementById('pwOverlay').addEventListener('click', function(e){ if(e.target===this) closePw(); });
 document.getElementById('newChName').addEventListener('keydown', function(e){ if(e.key==='Enter') addChannel(); });
-document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeForm(); closeChannels(); } });
+document.getElementById('pwInput').addEventListener('keydown', function(e){ if(e.key==='Enter') submitPw(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeForm(); closeChannels(); closePw(); } });
 
-(function boot(){
-  var saved = document.getElementById('saved-db');
-  if(saved){ try{ DB = JSON.parse(saved.textContent); }catch(e){ DB={channels:[],ads:[]}; } }
-  if(!DB.channels || !DB.channels.length){ DB.channels = DEFAULT_CHANNELS.map(function(c){return Object.assign({},c);}); }
-  else {
-    DEFAULT_CHANNELS.forEach(function(d){
-      if(!DB.channels.some(function(c){return c.key===d.key;})) DB.channels.unshift(Object.assign({},d));
-    });
-  }
-  if(!DB.ads || !DB.ads.length){ DB.ads = SAMPLE.slice(); }
-  render();
-})();
+applyEditMode();
+render();
+</script>
+
+<!-- ===================== 실시간 동기화 (Firebase) ===================== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+
+/* ▼▼▼▼▼  여기 두 곳만 바꾸면 됩니다 (한 번만)  ▼▼▼▼▼ */
+
+// (1) Firebase 콘솔에서 복사한 설정을 그대로 붙여넣기
+const firebaseConfig = {
+  apiKey: "AIzaSyAOk3O5vt29JuFYdenzFkwaSG8bwPTuliM",
+  authDomain: "ads-check-f188a.firebaseapp.com",
+  projectId: "ads-check-f188a",
+  storageBucket: "ads-check-f188a.firebasestorage.app",
+  messagingSenderId: "417174338218",
+  appId: "1:417174338218:web:48b96e0cfeb6e44cc36ed3"
+};
+
+// (2) 편집용 공용 계정 이메일 (Firebase Authentication에서 만든 그 이메일)
+//     비밀번호는 코드에 넣지 않고, 팀에게 따로 알려주면 됩니다.
+const EDITOR_EMAIL = "pr@w-network.co.kr";
+
+/* ▲▲▲▲▲  여기까지  ▲▲▲▲▲ */
+
+const configured = firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf("PASTE") < 0;
+
+if(!configured){
+  // 아직 설정 전 → 데모 모드 (로컬에서 미리보기만, 저장 안 됨)
+  window.__cloud = false;
+  window.__setSync("demo");
+  window.__demoSeed();
+} else {
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
+  const auth = getAuth(app);
+  window.__cloud = true;
+  window.__setSync("connected");
+
+  // 광고 실시간 구독
+  onSnapshot(collection(db, "ads"), (snap)=>{
+    const ads = [];
+    snap.forEach((d)=> ads.push(Object.assign({ id: d.id }, d.data())));
+    ads.sort((a,b)=> (a.id < b.id ? 1 : -1)); // 최근 추가가 위로
+    window.__setAds(ads);
+  }, ()=> window.__setSync("error"));
+
+  // 채널 설정 실시간 구독
+  onSnapshot(doc(db, "config", "main"), (d)=>{
+    const data = d.exists() ? d.data() : null;
+    window.__setChannels(data && data.channels ? data.channels : null);
+  });
+
+  // 로그인 상태 → 편집 권한
+  onAuthStateChanged(auth, (user)=> window.__setEditor(!!user));
+
+  // 쓰기 함수 (편집 로그인 되어 있어야 규칙 통과)
+  window.__save = (obj)=>{
+    const { id } = obj; const data = Object.assign({}, obj); delete data.id;
+    return setDoc(doc(db, "ads", id), data);
+  };
+  window.__del = (id)=> deleteDoc(doc(db, "ads", id));
+  window.__saveChannels = (channels)=> setDoc(doc(db, "config", "main"), { channels });
+  window.__login  = (pw)=> signInWithEmailAndPassword(auth, EDITOR_EMAIL, pw);
+  window.__logout = ()=> signOut(auth);
+}
 </script>
 </body>
 </html>
