@@ -118,8 +118,17 @@
     box-shadow:0 20px 60px rgba(0,0,0,.5);}
   .imgview .close{position:fixed;top:16px;right:18px;color:#fff;background:rgba(255,255,255,.14);
     border:none;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;
-    align-items:center;justify-content:center;}
+    align-items:center;justify-content:center;z-index:2;}
   .imgview .close svg{width:20px;height:20px;}
+  .imgview .navbtn{position:fixed;top:50%;transform:translateY(-50%);color:#fff;
+    background:rgba(255,255,255,.14);border:none;width:46px;height:46px;border-radius:50%;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .14s;}
+  .imgview .navbtn:hover{background:rgba(255,255,255,.28);}
+  .imgview .navbtn svg{width:24px;height:24px;}
+  .imgview .prev{left:18px;} .imgview .next{right:18px;}
+  .imgcounter{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);color:#fff;
+    background:rgba(20,22,27,.7);padding:6px 14px;border-radius:999px;font-size:13px;font-weight:700;
+    font-variant-numeric:tabular-nums;z-index:2;}
   .preview iframe{width:100%;height:100%;border:0;display:block;}
   .preview .noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
     color:#5b6472;font-size:13px;background:linear-gradient(135deg,#1a1f27,#0e1116);}
@@ -211,10 +220,18 @@
     transition:all .14s;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
   .seg button .cdot{width:8px;height:8px;border-radius:50%;}
   .seg button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
-  .imgdrop{border:1.5px dashed var(--line);border-radius:12px;padding:16px;text-align:center;
-    color:var(--muted);font-size:13px;cursor:pointer;transition:border-color .14s,background .14s;}
-  .imgdrop:hover{border-color:var(--accent);background:var(--accent-soft);}
-  .imgdrop img{max-height:130px;border-radius:8px;margin-top:8px;display:block;margin-inline:auto;}
+  .imgthumbs{display:flex;flex-wrap:wrap;gap:8px;}
+  .imgthumb{position:relative;width:82px;height:82px;border-radius:9px;overflow:hidden;border:1px solid var(--line);}
+  .imgthumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .imgdel{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:none;
+    background:rgba(16,20,28,.66);color:#fff;cursor:pointer;font-size:14px;line-height:1;
+    display:flex;align-items:center;justify-content:center;}
+  .imgdel:hover{background:#D92D20;}
+  .imgadd{width:82px;height:82px;border-radius:9px;border:1.5px dashed var(--line);background:transparent;
+    cursor:pointer;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;font-size:20px;font-family:inherit;transition:all .14s;}
+  .imgadd span{font-size:11px;font-weight:600;}
+  .imgadd:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
   .modal-foot{padding:16px 22px;border-top:1px solid var(--line-soft);display:flex;gap:10px;}
   .modal-foot button{flex:1;padding:12px;border-radius:11px;font-size:14px;font-weight:700;
     cursor:pointer;font-family:inherit;border:1px solid var(--line);}
@@ -337,11 +354,8 @@
         <div class="hint">링크만 넣으면 썸네일·재생 미리보기가 자동으로 잡혀.</div>
       </div>
       <div class="field" id="imgField">
-        <label>미리보기 이미지 <span style="color:var(--muted);font-weight:500">(캡처 업로드)</span></label>
-        <div class="imgdrop" id="imgdrop" onclick="document.getElementById('f_img').click()">
-          <span id="imgdropText">클릭해서 광고 캡처 이미지 올리기</span>
-          <input type="file" id="f_img" accept="image/*" style="display:none">
-        </div>
+        <label>미리보기 이미지 <span style="color:var(--muted);font-weight:500">(여러 장 가능)</span></label>
+        <div class="imgdrop" id="imgdrop"></div>
       </div>
       <div class="field">
         <label>💎 혜택 · 광고에서 내건 조건</label>
@@ -445,7 +459,14 @@
   <button class="close" onclick="closeImg()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
   </button>
-  <img id="imgviewImg" src="" alt="">
+  <button class="navbtn prev" id="imgPrev" onclick="galleryNav(-1,event)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+  </button>
+  <img id="imgviewImg" src="" alt="" onclick="galleryNav(1,event)">
+  <button class="navbtn next" id="imgNext" onclick="galleryNav(1,event)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+  </button>
+  <div class="imgcounter" id="imgviewCounter"></div>
 </div>
 
 <script>
@@ -480,7 +501,8 @@ var liveOnly = false;
 var editingId = null;
 var formCh = 'youtube';
 var formStatus = 'live';
-var formImg = '';
+var formImgs = [];
+var galleryImgs = [], galleryIdx = 0;
 var newChColor = SWATCH_COLORS[3];
 var isEditor = false;
 
@@ -581,10 +603,12 @@ function cardHtml(a){
     preview = '<img class="thumb" src="'+ytThumb(vid)+'" alt="" onerror="this.style.display=\'none\'">'+
       '<div class="play" onclick="playVid(this,\''+vid+'\')"><div class="circle">'+
       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div></div>';
-  } else if(a.img){
-    preview = '<img class="thumb zoomable" src="'+a.img+'" alt="" onclick="openImg(this.src)">'+
-      '<div class="zoom-hint" onclick="openImg(this.previousElementSibling.src)">'+
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg>전체 보기</div>';
+  } else if(imgList(a).length){
+    var imgs = imgList(a);
+    var hint = imgs.length>1 ? (imgs.length+'장 전체 보기') : '전체 보기';
+    preview = '<img class="thumb zoomable" src="'+imgs[0]+'" alt="" onclick="openGallery(\''+a.id+'\')">'+
+      '<div class="zoom-hint" onclick="openGallery(\''+a.id+'\')">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg>'+hint+'</div>';
   } else {
     preview = '<div class="noimg">미리보기 이미지 없음</div>';
   }
@@ -626,10 +650,27 @@ function playVid(el, id){
   wrap.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0" '+
     'allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
 }
-function openImg(src){
-  if(!src) return;
-  document.getElementById('imgviewImg').src = src;
+function imgList(a){ return (a.imgs && a.imgs.length) ? a.imgs : (a.img ? [a.img] : []); }
+function openGallery(id){
+  var a = DB.ads.find(function(x){return x.id===id;}); if(!a) return;
+  var imgs = imgList(a); if(!imgs.length) return;
+  galleryImgs = imgs; galleryIdx = 0; showGallery();
   document.getElementById('imgview').classList.add('open');
+}
+function showGallery(){
+  document.getElementById('imgviewImg').src = galleryImgs[galleryIdx] || '';
+  var multi = galleryImgs.length > 1;
+  document.getElementById('imgPrev').style.display = multi ? '' : 'none';
+  document.getElementById('imgNext').style.display = multi ? '' : 'none';
+  var c = document.getElementById('imgviewCounter');
+  if(multi){ c.style.display=''; c.textContent = (galleryIdx+1)+' / '+galleryImgs.length; }
+  else { c.style.display='none'; }
+}
+function galleryNav(d, ev){
+  if(ev) ev.stopPropagation();
+  if(galleryImgs.length<2) return;
+  galleryIdx = (galleryIdx + d + galleryImgs.length) % galleryImgs.length;
+  showGallery();
 }
 function closeImg(){ document.getElementById('imgview').classList.remove('open'); }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -658,23 +699,24 @@ function setFormStatus(s){
 document.getElementById('stSeg').addEventListener('click', function(e){
   var b=e.target.closest('button'); if(b) setFormStatus(b.dataset.st);
 });
-document.getElementById('f_img').addEventListener('change', function(e){
-  var file=e.target.files[0]; if(!file) return;
-  fileToImg(file, function(data){ formImg=data; showImgPreview(); });
-});
-function showImgPreview(){
+function renderImgDrop(){
   var d=document.getElementById('imgdrop');
-  if(formImg){
-    d.innerHTML='<span id="imgdropText">이미지 변경하려면 클릭</span>'+
-      '<input type="file" id="f_img" accept="image/*" style="display:none">'+
-      '<img src="'+formImg+'" alt="preview">';
-    d.querySelector('#f_img').addEventListener('change', reBindImg);
-  }
+  var thumbs = formImgs.map(function(src,i){
+    return '<div class="imgthumb"><img src="'+src+'" alt="">'+
+      '<button type="button" class="imgdel" title="삭제" onclick="removeImg(event,'+i+')">×</button></div>';
+  }).join('');
+  d.innerHTML = '<div class="imgthumbs">'+thumbs+
+    '<button type="button" class="imgadd" onclick="document.getElementById(\'f_img\').click()">＋<span>추가</span></button>'+
+    '</div><input type="file" id="f_img" accept="image/*" multiple style="display:none">';
+  d.querySelector('#f_img').addEventListener('change', onImgFiles);
 }
-function reBindImg(e){
-  var file=e.target.files[0]; if(!file) return;
-  fileToImg(file, function(data){ formImg=data; showImgPreview(); });
+function onImgFiles(e){
+  var files = Array.prototype.slice.call(e.target.files); if(!files.length) return;
+  files.forEach(function(file){
+    fileToImg(file, function(data){ formImgs.push(data); renderImgDrop(); });
+  });
 }
+function removeImg(ev, i){ ev.stopPropagation(); formImgs.splice(i,1); renderImgDrop(); }
 
 function openForm(id){
   if(!isEditor){ toast('편집하려면 먼저 잠금을 해제해줘'); openPw(); return; }
@@ -684,7 +726,7 @@ function openForm(id){
   document.getElementById('delBtn').style.display = a ? '' : 'none';
   formCh = a ? a.channel : (DB.channels[0] ? DB.channels[0].key : 'youtube');
   formStatus = a ? a.status : 'live';
-  formImg = a ? (a.img||'') : '';
+  formImgs = a ? imgList(a).slice() : [];
   renderChSeg(); setFormCh(formCh);
   document.getElementById('f_title').value = a? a.title : '';
   document.getElementById('f_src').value   = a? a.src : '';
@@ -698,11 +740,7 @@ function openForm(id){
   document.getElementById('f_memo').value  = a? (a.memo||'') : '';
   setFormStatus(formStatus);
   if(a){ document.getElementById('f_end').value = a.end||''; }
-  var d=document.getElementById('imgdrop');
-  d.innerHTML='<span id="imgdropText">클릭해서 광고 캡처 이미지 올리기</span>'+
-    '<input type="file" id="f_img" accept="image/*" style="display:none">';
-  d.querySelector('#f_img').addEventListener('change', reBindImg);
-  if(formImg) showImgPreview();
+  renderImgDrop();
   document.getElementById('overlay').classList.add('open');
 }
 function closeForm(){ document.getElementById('overlay').classList.remove('open'); }
@@ -717,7 +755,7 @@ function saveAd(){
     src: document.getElementById('f_src').value.trim(),
     phone: document.getElementById('f_phone').value.trim(),
     yt: document.getElementById('f_yt').value.trim(),
-    img: formImg,
+    imgs: formImgs,
     benefit: document.getElementById('f_benefit').value.trim(),
     start: start, end: end, status: formStatus,
     period: periodStr(start, end, formStatus),
@@ -881,7 +919,13 @@ document.getElementById('chOverlay').addEventListener('click', function(e){ if(e
 document.getElementById('pwOverlay').addEventListener('click', function(e){ if(e.target===this) closePw(); });
 document.getElementById('newChName').addEventListener('keydown', function(e){ if(e.key==='Enter') addChannel(); });
 document.getElementById('pwInput').addEventListener('keydown', function(e){ if(e.key==='Enter') submitPw(); });
-document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeForm(); closeChannels(); closePw(); closeImg(); } });
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){ closeForm(); closeChannels(); closePw(); closeImg(); }
+  if(document.getElementById('imgview').classList.contains('open')){
+    if(e.key==='ArrowLeft') galleryNav(-1);
+    if(e.key==='ArrowRight') galleryNav(1);
+  }
+});
 
 applyEditMode();
 render();
