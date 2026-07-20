@@ -105,6 +105,21 @@
   .card:hover{transform:translateY(-2px); box-shadow:0 2px 4px rgba(16,24,40,.05),0 14px 34px rgba(16,24,40,.09);}
   .preview{position:relative; aspect-ratio:16/10; background:#0e1116; overflow:hidden;}
   .preview img.thumb{width:100%;height:100%;object-fit:cover;display:block;}
+  .preview img.zoomable{cursor:zoom-in;}
+  .zoom-hint{position:absolute;bottom:10px;right:10px;z-index:2;display:inline-flex;align-items:center;gap:5px;
+    font-size:11px;font-weight:700;color:#fff;background:rgba(20,22,27,.72);padding:5px 9px;border-radius:8px;
+    cursor:zoom-in;backdrop-filter:blur(2px);transition:background .14s;}
+  .zoom-hint:hover{background:rgba(20,22,27,.9);}
+  .zoom-hint svg{width:13px;height:13px;}
+  .imgview{position:fixed;inset:0;background:rgba(8,10,14,.92);z-index:90;display:none;
+    align-items:center;justify-content:center;padding:24px;cursor:zoom-out;}
+  .imgview.open{display:flex;}
+  .imgview img{max-width:100%;max-height:100%;object-fit:contain;border-radius:12px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);}
+  .imgview .close{position:fixed;top:16px;right:18px;color:#fff;background:rgba(255,255,255,.14);
+    border:none;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;}
+  .imgview .close svg{width:20px;height:20px;}
   .preview iframe{width:100%;height:100%;border:0;display:block;}
   .preview .noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
     color:#5b6472;font-size:13px;background:linear-gradient(135deg,#1a1f27,#0e1116);}
@@ -425,6 +440,14 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Image Lightbox -->
+<div class="imgview" id="imgview" onclick="closeImg()">
+  <button class="close" onclick="closeImg()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+  <img id="imgviewImg" src="" alt="">
+</div>
+
 <script>
 /* ---------- Defaults ---------- */
 var DEFAULT_CHANNELS = [
@@ -559,7 +582,9 @@ function cardHtml(a){
       '<div class="play" onclick="playVid(this,\''+vid+'\')"><div class="circle">'+
       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div></div>';
   } else if(a.img){
-    preview = '<img class="thumb" src="'+a.img+'" alt="">';
+    preview = '<img class="thumb zoomable" src="'+a.img+'" alt="" onclick="openImg(this.src)">'+
+      '<div class="zoom-hint" onclick="openImg(this.previousElementSibling.src)">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg>전체 보기</div>';
   } else {
     preview = '<div class="noimg">미리보기 이미지 없음</div>';
   }
@@ -601,6 +626,12 @@ function playVid(el, id){
   wrap.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0" '+
     'allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>';
 }
+function openImg(src){
+  if(!src) return;
+  document.getElementById('imgviewImg').src = src;
+  document.getElementById('imgview').classList.add('open');
+}
+function closeImg(){ document.getElementById('imgview').classList.remove('open'); }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 /* ---------- Ad form ---------- */
@@ -850,7 +881,7 @@ document.getElementById('chOverlay').addEventListener('click', function(e){ if(e
 document.getElementById('pwOverlay').addEventListener('click', function(e){ if(e.target===this) closePw(); });
 document.getElementById('newChName').addEventListener('keydown', function(e){ if(e.key==='Enter') addChannel(); });
 document.getElementById('pwInput').addEventListener('keydown', function(e){ if(e.key==='Enter') submitPw(); });
-document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeForm(); closeChannels(); closePw(); } });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeForm(); closeChannels(); closePw(); closeImg(); } });
 
 applyEditMode();
 render();
