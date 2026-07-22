@@ -60,6 +60,12 @@
   .sync.ok{background:var(--live-bg);color:var(--live);}
   .sync.err{background:#FEF3F2;color:#D92D20;}
   .sync.demo{background:#FFF6E5;color:#8a6100;}
+  .live-count{display:none;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+    padding:2px 8px;border-radius:999px;background:var(--live-bg);color:var(--live);white-space:nowrap;}
+  .live-count.on{display:inline-flex;}
+  .live-count .pulse{width:6px;height:6px;border-radius:50%;background:currentColor;
+    animation:pulse 1.8s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.35;transform:scale(.8);}}
   .btn-add{
     display:inline-flex; align-items:center; gap:7px; border:none; cursor:pointer;
     background:var(--ink); color:#fff; font-weight:600; font-size:14px;
@@ -300,7 +306,7 @@
   <div class="head-in">
     <div class="brand">
       <div class="mark">광고 <span>미리보기</span></div>
-      <div class="sub">인터넷끝판왕 · 영업팀 상담 참고용 <span class="sync" id="syncBadge"></span></div>
+      <div class="sub">인터넷끝판왕 · 영업팀 상담 참고용 <span class="sync" id="syncBadge"></span><span class="live-count" id="presenceBadge"></span></div>
     </div>
     <div class="search">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -899,6 +905,12 @@ window.__setChannels = function(chArr){
   if(document.getElementById('chOverlay').classList.contains('open')) renderChannelList();
 };
 window.__setEditor = function(v){ isEditor=!!v; applyEditMode(); };
+window.__setPresence = function(n){
+  var el=document.getElementById('presenceBadge'); if(!el) return;
+  if(!n || n<1){ el.className='live-count'; el.innerHTML=''; return; }
+  el.className='live-count on';
+  el.innerHTML='<span class="pulse"></span>'+n+'명 접속 중';
+};
 window.__setSync = function(state){
   var el=document.getElementById('syncBadge'); if(!el) return;
   if(state==='connected'){ el.textContent='☁ 실시간 공유'; el.className='sync ok'; }
@@ -995,6 +1007,34 @@ if(!configured){
   window.__saveChannels = (channels)=> setDoc(doc(db, "config", "main"), { channels });
   window.__login  = (pw)=> signInWithEmailAndPassword(auth, EDITOR_EMAIL, pw);
   window.__logout = ()=> signOut(auth);
+
+  /* ---- 접속 인원(실시간) ---- */
+  const SID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const myPresence = doc(db, "presence", SID);
+  const ALIVE = 90000;    // 90초 안에 신호가 있으면 접속 중
+  const BEAT  = 25000;    // 25초마다 신호
+
+  const beat = ()=> setDoc(myPresence, { t: Date.now() }).catch(()=>{});
+  beat();
+  setInterval(beat, BEAT);
+  document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) beat(); });
+
+  onSnapshot(collection(db, "presence"), (snap)=>{
+    const now = Date.now(); let n = 0; const stale = [];
+    snap.forEach((d)=>{
+      const t = (d.data() || {}).t || 0;
+      if(now - t < ALIVE) n++;
+      else if(now - t > 600000) stale.push(d.id);   // 10분 넘은 찌꺼기
+    });
+    window.__setPresence(n);
+    if(stale.length && Math.random() < 0.25){
+      stale.slice(0,5).forEach((id)=> deleteDoc(doc(db,"presence",id)).catch(()=>{}));
+    }
+  }, ()=>{});
+
+  const bye = ()=>{ try{ deleteDoc(myPresence); }catch(e){} };
+  window.addEventListener("pagehide", bye);
+  window.addEventListener("beforeunload", bye);
 }
 </script>
 </body>
