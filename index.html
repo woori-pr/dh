@@ -184,6 +184,11 @@
   .lk:hover{filter:brightness(.96);}
   .lk.grey{color:var(--muted);background:var(--line-soft);}
   .row-actions{display:flex;gap:6px;margin-left:auto;}
+  .icon-btn.pin.on{color:var(--accent);background:var(--accent-soft);}
+  .pin-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;
+    color:var(--ink);background:rgba(255,255,255,.92);padding:4px 8px;border-radius:999px;
+    box-shadow:0 1px 4px rgba(0,0,0,.22);}
+  .card.pinned{border-color:#C9D6F5;box-shadow:0 0 0 2px var(--accent-soft),var(--shadow);}
   .icon-btn{border:none;background:transparent;cursor:pointer;color:var(--muted);
     width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;
     transition:background .14s,color .14s;}
@@ -598,7 +603,33 @@ function render(){
       (DB.ads.length? '검색어나 필터를 바꿔봐.' : '편집을 켜고 <b>광고 추가</b>로 첫 광고를 등록해줘.')+'</div>';
     return;
   }
+  list.sort(function(x,y){
+    var px = isPinned(x)?1:0, py = isPinned(y)?1:0;
+    if(px!==py) return py-px;
+    if(px) return (pinAt(y)||0) - (pinAt(x)||0);
+    return 0;
+  });
   grid.innerHTML = list.map(cardHtml).join('');
+}
+/* 고정은 한 번만 누르면 전체·채널 어디서든 동일하게 적용 */
+function isPinned(a){ return !!a.pinAll; }
+function pinAt(a){ return a.pinAllAt||0; }
+function togglePin(id, ev){
+  if(ev){ ev.stopPropagation(); }
+  if(!isEditor){ toast('편집 잠금을 먼저 해제해줘'); openPw(); return; }
+  var a = DB.ads.find(function(x){return x.id===id;}); if(!a) return;
+  var obj = Object.assign({}, a);
+  obj.pinAll = !obj.pinAll;
+  obj.pinAllAt = obj.pinAll ? Date.now() : 0;
+  obj.pinCh = obj.pinAll; obj.pinChAt = obj.pinAllAt;
+  if(window.__cloud){
+    window.__save(obj).then(function(){ toast(obj.pinAll ? '상단에 고정됨 (전체·채널 공통)' : '고정 해제됨'); })
+      .catch(function(e){ toast('실패: '+(e.code||'')); });
+  } else {
+    var i = DB.ads.findIndex(function(x){return x.id===id;});
+    if(i>=0) DB.ads[i]=obj;
+    render(); toast(obj.pinAll ? '고정됨' : '고정 해제됨');
+  }
 }
 
 function cardHtml(a){
@@ -630,9 +661,10 @@ function cardHtml(a){
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L7.9 9.8a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg>'+
     esc(a.phone)+'</a>' : '';
   var per = a.period || periodStr(a.start, a.end, a.status);
-  return '<div class="card">'+
+  return '<div class="card'+(isPinned(a)?' pinned':'')+'">'+
     '<div class="preview">'+
-      '<div class="badges"><span class="ch-badge" style="background:'+ch.color+'">'+esc(ch.name)+'</span></div>'+
+      '<div class="badges"><span class="ch-badge" style="background:'+ch.color+'">'+esc(ch.name)+'</span>'+
+        (isPinned(a)? '<span class="pin-badge">📌 고정</span>' : '')+'</div>'+
       statusHtml + preview +
     '</div>'+
     '<div class="body">'+
@@ -642,6 +674,9 @@ function cardHtml(a){
       '<div class="meta">'+
         '<span class="period">🗓 '+esc(per||'-')+'</span>'+
         '<div class="row-actions">'+
+          '<button class="icon-btn pin'+(isPinned(a)?' on':'')+'" title="'+(isPinned(a)?'고정 해제':'상단 고정')+'" onclick="togglePin(\''+a.id+'\',event)">'+
+            '<svg viewBox="0 0 24 24" fill="'+(isPinned(a)?'currentColor':'none')+'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8V4h6v6.8l2.4 3.2a1 1 0 0 1-.8 1.6H7.4a1 1 0 0 1-.8-1.6L9 10.8z"/></svg>'+
+          '</button>'+
           '<button class="icon-btn" title="수정" onclick="openForm(\''+a.id+'\')">'+
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>'+
           '</button>'+
@@ -770,6 +805,13 @@ function saveAd(){
     memo: document.getElementById('f_memo').value.trim()
   };
   if(!obj.title && !obj.benefit){ toast('인입경로나 혜택 중 하나는 적어줘'); return; }
+  if(editingId){
+    var prev = DB.ads.find(function(x){return x.id===editingId;});
+    if(prev){
+      obj.pinAll = !!prev.pinAll; obj.pinAllAt = prev.pinAllAt||0;
+      obj.pinCh  = !!prev.pinCh;  obj.pinChAt  = prev.pinChAt||0;
+    }
+  }
   if(window.__cloud){
     window.__save(obj).then(function(){ closeForm(); toast('저장됨 · 모두에게 실시간 반영'); })
       .catch(function(e){ toast('저장 실패: '+(e.code||e.message||'')); });
